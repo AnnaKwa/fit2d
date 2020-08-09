@@ -23,6 +23,8 @@ var/
 .installed.cfg
 *.egg
 
-**/notebooks/
+data/
+notebooks/
+.ipynb_checkouts/
 *.ipynb
 *.fits
