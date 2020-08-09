@@ -4,6 +4,7 @@ from fit2d.mcmc import lnlike_piecewise_model, dynesty_lnlike
 from fit2d.models import PiecewiseModel
 
 from astropy.io import fits
+import joblib
 import dynesty
 
 ### SAMPLER PARAMS ###
@@ -59,3 +60,6 @@ sampler.run_nested(
     print_progress=True, 
     use_stop=False, wt_kwargs={"pfrac": 1.0}
 )
+
+with open("piecewise_example_results.pkl", "wb") as f:
+    joblib.dump(sampler.results, f)
