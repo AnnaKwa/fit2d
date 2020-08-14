@@ -17,8 +17,9 @@ def create_2d_velocity_field(
     image_xdim: int,
     image_ydim: int,
     n_interp_r=75,
-    n_interp_theta=700,
+    n_interp_theta=10,
     n_neighbors_impute=2,
+    mask_sigma=1.,
 ):
     """
         radii (Sequence[float]): radii for which modeled 1D velocities are provided. [kpc]
@@ -59,7 +60,7 @@ def create_2d_velocity_field(
                     v_field[arr_y][arr_x] = v_los
                 except:
                     print(arr_x, arr_y, v_los)
-    near_neighbors_mask = create_blurred_mask(v_field)
+    near_neighbors_mask = create_blurred_mask(v_field, mask_sigma)
 
     imputer = KNNImputer(n_neighbors=n_neighbors_impute, weights="distance")
     v_field = imputer.fit_transform(np.where(near_neighbors_mask == 1, v_field, 0.0))

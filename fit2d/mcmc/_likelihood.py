@@ -55,6 +55,7 @@ def lnlike_piecewise_model(
     v_err_const: float = 10.0,
     n_interp_r: int = 150,
     n_interp_theta: int = 150,
+    mask_sigma: float = 1.,
 ):
 
     v_m = _piecewise_constant(
@@ -76,6 +77,7 @@ def lnlike_piecewise_model(
         image_ydim=galaxy.image_ydim,
         n_interp_r=n_interp_r,
         n_interp_theta=n_interp_theta,
+        mask_sigma=mask_sigma,
     )
     chisq = chisq_2d(
         vlos_2d_model=vlos_2d_model,
