@@ -36,7 +36,7 @@ class PiecewiseModel(Model):
         self.parameter_names = parameter_names
 
     def set_bin_edges(self, rmin: float, rmax: float):
-        self.bin_edges = np.linspace(0.999 * rmin, 1.001 * rmax, self.num_bins)
+        self.bin_edges = np.linspace(0.999 * rmin, 1.001 * rmax, self.num_bins+1)
 
     def set_bounds(
         self,
