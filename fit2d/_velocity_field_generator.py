@@ -26,7 +26,6 @@ Therefore the last step is to use a nearest neighbors algorithm, which fill in t
 empty pixels by interpolating the values of nearby pixels.
 """
 
-
 def create_2d_velocity_field(
     radii: Sequence[float],
     v_rot: Sequence[float],
@@ -60,23 +59,19 @@ def create_2d_velocity_field(
     v_field = np.zeros(shape=(image_ydim, image_xdim))
     v_field[:] = np.nan
     v_rot_interp = interp1d(radii, v_rot)
-    radii_interp = np.linspace(np.min(radii), np.max(radii), n_interp_r)
 
-    for r in radii_interp:
-        v = v_rot_interp(r)
-        for theta in np.linspace(0, 2.0 * np.pi, n_interp_theta):
-            # calculates the pixel coordinates and line of sight velocity in the observer frame
-            x, y, v_los = _calc_v_los_at_r_theta(
+    radii_interp = np.linspace(np.min(radii), np.max(radii), n_interp_r)
+    theta = np.linspace(0, 2.0 * np.pi, n_interp_theta)
+    flattened_r_v_pairs = np.array(np.meshgrid(radii_interp, theta)).T.reshape(-1, 2).T
+    r, theta = flattened_r_v_pairs[0], flattened_r_v_pairs[1]
+    v = v_rot_interp(r)
+    x, y, v_los = _calc_v_los_at_r_theta(
                 ring_model, v, r, theta, kpc_per_pixel, v_systemic
             )
-            # checks that the pixel coords in observer frame are consistent
-            # with image dimensions of first moment map
-            if image_xdim - 1 > x > 0 and y < image_ydim - 1 and y > 0:
-                arr_x, arr_y = int(np.round(x, 0)), int(np.round(y, 0))
-                try:
-                    v_field[arr_y][arr_x] = v_los
-                except:
-                    print(arr_x, arr_y, v_los)
+    x = np.round(x).astype(int) 
+    y = np.round(y).astype(int)
+    v_field[y, x] = v_los
+
     near_neighbors_mask = create_blurred_mask(v_field, mask_sigma)
 
     imputer = KNNImputer(n_neighbors=n_neighbors_impute, weights="distance")
@@ -108,7 +103,7 @@ def _convert_galaxy_to_observer_coords(ring_model, r, theta, kpc_per_pixel):
     )
     x_pix = x_kpc / kpc_per_pixel
     y_pix = y_kpc / kpc_per_pixel
-    return (x_pix, y_pix)
+    return x_pix, y_pix
 
 
 def _calc_v_los_at_r_theta(ring_model, v_rot, r, theta, kpc_per_pixel, v_systemic):
@@ -124,4 +119,4 @@ def _calc_v_los_at_r_theta(ring_model, v_rot, r, theta, kpc_per_pixel, v_systemi
     x = x0 + x_from_galaxy_center
     y = y0 + y_from_galaxy_center
 
-    return (x, y, v_los)
+    return x, y, v_los
