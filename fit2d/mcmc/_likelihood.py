@@ -1,14 +1,14 @@
 import numpy as np
 import time
-from typing import Sequence
+from typing import Sequence, Callable, Mapping
 
 from .._galaxy import Galaxy, RingModel
 from .._velocity_field_generator import create_2d_velocity_field
-from ..models import PiecewiseModel
+from . import _rotation_curves as rotation_curves  
 
 
 def dynesty_lnlike(lnlike_func, normalization_func, lnlike_args, ):
-    return lambda cube: lnlike_func(normalization_func(cube), **lnlike_args)
+    return lambda cube: lnlike_func(normalization_func(cube), *lnlike_args)
 
 def chisq_2d(
     vlos_2d_model: np.ndarray,
@@ -46,27 +46,20 @@ def chisq_2d(
     return chisq
 
 
-def lnlike_piecewise_model(
+def lnlike(
     params,
+    rotation_curve_func_name: str,
+    rotation_curve_func_kwargs: Mapping,
     galaxy: Galaxy,
     ring_model: RingModel,
-    piecewise_model: PiecewiseModel,
     v_err_2d: np.ndarray = None,
     v_err_const: float = 10.0,
     n_interp_r: int = 150,
     n_interp_theta: int = 150,
     mask_sigma: float = 1.,
 ):
-
-    v_m = _piecewise_constant(
-        params, 
-        radii_to_interpolate=ring_model.radii_kpc,
-        piecewise_model=piecewise_model)
-    if len(v_m) != len(ring_model.radii_kpc):
-        raise ValueError(
-            f"Number of radii returned by piecewise constant function ({len(v_m.shape)}) "
-            f"must be equal to number of radii in Bbarolo parameter file({len(ring_model.radii_kpc)})."
-        )
+    rotation_curve_func = getattr(rotation_curves, rotation_curve_func_name)
+    v_m = rotation_curve_func(params, **rotation_curve_func_kwargs)
     vlos_2d_model = create_2d_velocity_field(
         radii=ring_model.radii_kpc,
         v_rot=v_m,
@@ -87,21 +80,3 @@ def lnlike_piecewise_model(
     )
 
     return -0.5 * (chisq)
-
-def _piecewise_constant(
-    velocities_at_piecewise_bin_centers: Sequence[float],
-    radii_to_interpolate: Sequence[float],
-    piecewise_model: PiecewiseModel,
-):
-    
-    vels = []
-    bin_edges = piecewise_model.bin_edges
-    for ring in radii_to_interpolate:
-        for radius in range(len(bin_edges)):
-            if (
-                ring <= bin_edges[radius] and ring > bin_edges[radius - 1]
-            ):  # ring is greater than current bin edge, and less than
-                vels.append(
-                    velocities_at_piecewise_bin_centers[radius - 1]
-                )  # previous bin edge
-    return np.array(vels)

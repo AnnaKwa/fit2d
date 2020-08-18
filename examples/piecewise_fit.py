@@ -1,6 +1,6 @@
 from fit2d import Galaxy, RingModel
 from fit2d.mcmc import LinearPrior
-from fit2d.mcmc import lnlike_piecewise_model, dynesty_lnlike
+from fit2d.mcmc import lnlike, dynesty_lnlike
 from fit2d.models import PiecewiseModel
 
 from astropy.io import fits
@@ -48,8 +48,19 @@ piecewise_model.set_bin_edges(rmin=ring_model.radii_kpc[0], rmax=ring_model.radi
 prior = LinearPrior(bounds=piecewise_model.bounds)
 prior_transform = prior.transform_from_unit_cube
 
-lnlike_args = [galaxy, ring_model, piecewise_model]
-log_likelihood = dynesty_lnlike(lnlike_piecewise_model, prior.transform_from_unit_cube, lnlike_args)
+
+rotation_curve_func_name = "piecewise_constant"
+rotation_curve_func_kwargs = {
+    "radii_to_interpolate": ring_model.radii_kpc, 
+    "piecewise_model": piecewise_model}
+
+lnlike_args = [
+    rotation_curve_func_name, 
+    rotation_curve_func_kwargs, 
+    galaxy, 
+    ring_model, 
+]
+log_likelihood = dynesty_lnlike(lnlike, prior.transform_from_unit_cube, lnlike_args)
 
 sampler = dynesty.DynamicNestedSampler(log_likelihood, prior_transform, piecewise_model.num_bins)
 sampler.run_nested(
