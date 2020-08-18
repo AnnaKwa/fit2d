@@ -20,6 +20,9 @@ class Model:
 
         self.parameter_names = parameter_names
         self.bounds = bounds
+    
+    def generate_1d_rotation_curve(self, params):
+        raise NotImplementedError
 
 
 class PiecewiseModel(Model):
@@ -68,3 +71,21 @@ class PiecewiseModel(Model):
             self.bounds = array_bounds
         else:
             raise ValueError("Need to provide either vmin/vmax OR array of tuple bounds.")
+
+    def generate_1d_rotation_curve(
+            self,
+            params: Sequence[float],
+            radii_to_interpolate: Sequence[float],
+    ):
+        vels = []
+        velocities_at_piecewise_bin_centers = params
+        bin_edges = self.bin_edges
+        for ring in radii_to_interpolate:
+            for radius in range(len(bin_edges)):
+                if (
+                    ring <= bin_edges[radius] and ring > bin_edges[radius - 1]
+                ):  # ring is greater than current bin edge, and less than
+                    vels.append(
+                        velocities_at_piecewise_bin_centers[radius - 1]
+                    )  # previous bin edge
+        return np.array(vels)

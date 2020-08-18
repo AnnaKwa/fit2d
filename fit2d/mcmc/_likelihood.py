@@ -4,8 +4,7 @@ from typing import Sequence, Callable, Mapping
 
 from .._galaxy import Galaxy, RingModel
 from .._velocity_field_generator import create_2d_velocity_field
-from . import _rotation_curves as rotation_curves  
-
+from ..models import Model
 
 def dynesty_lnlike(lnlike_func, normalization_func, lnlike_args, ):
     return lambda cube: lnlike_func(normalization_func(cube), *lnlike_args)
@@ -48,7 +47,7 @@ def chisq_2d(
 
 def lnlike(
     params,
-    rotation_curve_func_name: str,
+    model: Model,
     rotation_curve_func_kwargs: Mapping,
     galaxy: Galaxy,
     ring_model: RingModel,
@@ -58,8 +57,7 @@ def lnlike(
     n_interp_theta: int = 150,
     mask_sigma: float = 1.,
 ):
-    rotation_curve_func = getattr(rotation_curves, rotation_curve_func_name)
-    v_m = rotation_curve_func(params, **rotation_curve_func_kwargs)
+    v_m = model.generate_1d_rotation_curve(params, **rotation_curve_func_kwargs)
     vlos_2d_model = create_2d_velocity_field(
         radii=ring_model.radii_kpc,
         v_rot=v_m,
