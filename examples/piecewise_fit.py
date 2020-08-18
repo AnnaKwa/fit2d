@@ -48,14 +48,10 @@ piecewise_model.set_bin_edges(rmin=ring_model.radii_kpc[0], rmax=ring_model.radi
 prior = LinearPrior(bounds=piecewise_model.bounds)
 prior_transform = prior.transform_from_unit_cube
 
-
-rotation_curve_func_name = "piecewise_constant"
-rotation_curve_func_kwargs = {
-    "radii_to_interpolate": ring_model.radii_kpc, 
-    "piecewise_model": piecewise_model}
+rotation_curve_func_kwargs = {"radii_to_interpolate": ring_model.radii_kpc}
 
 lnlike_args = [
-    rotation_curve_func_name, 
+    piecewise_model,
     rotation_curve_func_kwargs, 
     galaxy, 
     ring_model, 
