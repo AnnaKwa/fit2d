@@ -9,6 +9,13 @@ from ..models import Model
 def dynesty_lnlike(lnlike_func, normalization_func, lnlike_args, ):
     return lambda cube: lnlike_func(normalization_func(cube), *lnlike_args)
 
+
+def emcee_lnlike(params, lnlike_args: Sequence):
+    # wraps the lnlike function because emcee expects 
+    # tuple of (lnlike, blob) returned
+    return lnlike(params, *lnlike_args), None
+
+
 def chisq_2d(
     vlos_2d_model: np.ndarray,
     vlos_2d_obs: np.ndarray,
@@ -76,5 +83,5 @@ def lnlike(
         v_err_2d=v_err_2d,
         v_err_const=v_err_const,
     )
+    return -0.5 * chisq
 
-    return -0.5 * (chisq)

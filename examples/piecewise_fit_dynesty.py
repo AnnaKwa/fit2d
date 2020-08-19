@@ -25,6 +25,10 @@ ring_param_file = "/home/anna/Desktop/fit2d/data/UGC3974_ring_parameters.txt"
 # x and y dims are switched in ds9 fits display versus np array shape
 fits_ydim, fits_xdim = fits.open(observed_2d_vel_field_fits_file)[0].data.shape
 
+# PIECEWISE MODEL PARAMS
+num_bins = 10
+bounds_min, bounds_max = 0., 100.
+
 
 galaxy = Galaxy(
     name=name,
@@ -41,8 +45,8 @@ ring_model = RingModel(
     distance=distance
 )
 
-piecewise_model = PiecewiseModel(num_bins=10)
-piecewise_model.set_bounds(0, 100)
+piecewise_model = PiecewiseModel(num_bins=num_bins)
+piecewise_model.set_bounds(bounds_min, bounds_max)
 piecewise_model.set_bin_edges(rmin=ring_model.radii_kpc[0], rmax=ring_model.radii_kpc[-1])
 
 prior = LinearPrior(bounds=piecewise_model.bounds)
