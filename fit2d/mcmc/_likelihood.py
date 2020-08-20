@@ -1,6 +1,6 @@
 import numpy as np
 import time
-from typing import Sequence, Callable, Mapping
+from typing import Sequence, Callable, Mapping, Union
 
 from .._galaxy import Galaxy, RingModel
 from .._velocity_field_generator import create_2d_velocity_field
@@ -10,10 +10,19 @@ def dynesty_lnlike(lnlike_func, normalization_func, lnlike_args, ):
     return lambda cube: lnlike_func(normalization_func(cube), *lnlike_args)
 
 
-def emcee_lnlike(params, lnlike_args: Sequence):
+def emcee_lnlike(params, emcee_version: float, lnlike_args: Union[Mapping, Sequence]):
     # wraps the lnlike function because emcee expects 
     # tuple of (lnlike, blob) returned
-    return lnlike(params, *lnlike_args), None
+
+    if isinstance(lnlike_args, Sequence):
+        lnl = lnlike(params, *lnlike_args), None
+    else:
+        lnl = lnlike(params, **lnlike_args)
+    if emcee_version < 3:
+        # older version expects two returns: lnlike and blobs
+        return lnl, None
+    else:
+        return lnl
 
 
 def chisq_2d(
@@ -58,11 +67,11 @@ def lnlike(
     rotation_curve_func_kwargs: Mapping,
     galaxy: Galaxy,
     ring_model: RingModel,
+    mask_sigma: float = 1.,
     v_err_2d: np.ndarray = None,
     v_err_const: float = 10.0,
     n_interp_r: int = 150,
     n_interp_theta: int = 150,
-    mask_sigma: float = 1.,
 ):
     v_m = model.generate_1d_rotation_curve(params, **rotation_curve_func_kwargs)
     vlos_2d_model = create_2d_velocity_field(
