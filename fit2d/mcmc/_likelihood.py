@@ -60,6 +60,19 @@ def chisq_2d(
     return chisq
     
 
+def _tophat_prior(params: np.ndarray, bounds: Sequence[tuple]):
+    if len(params) != len(bounds):
+        raise ValueError(
+            f"Length of params vector {len(params)} must be same as length of "
+            f"model params {len(bounds)}."
+    )
+    bounds_min, bounds_max = bounds.T[0], bounds.T[1]
+    if all(params > bounds_min) and all(params < bounds_max):
+        return 0.
+    else:
+        return -np.inf
+
+
 def lnlike(
     params: np.ndarray,
     model: Model,
@@ -92,6 +105,6 @@ def lnlike(
         v_err_2d=v_err_2d,
         v_err_const=v_err_const,
     )
-    prior = model.tophat_prior(params)
+    prior = _tophat_prior(params, model.bounds)
     return -0.5 * chisq + prior
 

@@ -25,11 +25,22 @@ class Model:
         raise NotImplementedError
 
 
+class NFWModel(Model):
+    def __init__(
+        self,
+        bounds: Mapping[str, Tuple[float, float]] = None,
+        parameter_order: Sequence[str] = None,
+        log_parameters: Sequence[str] = None
+    ):
+        self.bounds = bounds
+        self.parameter_order = parameter_order 
+
+
 class PiecewiseModel(Model):
     def __init__(
         self,
         num_bins: int,
-        bounds: Mapping[str, Tuple[float, float]] = None,
+        bounds: Sequence[Tuple[float, float]] = None,
         bin_edges: Mapping[str, Tuple[float, float]] = None,
         parameter_names: Sequence[str] = None,
     ):
@@ -72,18 +83,6 @@ class PiecewiseModel(Model):
         else:
             raise ValueError("Need to provide either vmin/vmax OR array of tuple bounds.")
 
-    def tophat_prior(self, params: np.ndarray):
-        if len(params) != len(self.bounds):
-            raise ValueError(
-                f"Length of params vector {len(params)} must be same as length of "
-                f"model params {len(self.bounds)}."
-        )
-        bounds_min, bounds_max = self.bounds.T[0], self.bounds.T[1]
-        if all(params > bounds_min) and all(params < bounds_max):
-            return 0.
-        else:
-            return -np.inf
-
     def generate_1d_rotation_curve(
             self,
             params: Sequence[float],
@@ -101,3 +100,4 @@ class PiecewiseModel(Model):
                         velocities_at_piecewise_bin_centers[radius - 1]
                     )  # previous bin edge
         return np.array(vels)
+
