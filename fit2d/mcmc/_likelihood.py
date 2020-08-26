@@ -13,7 +13,6 @@ def dynesty_lnlike(lnlike_func, normalization_func, lnlike_args, ):
 def emcee_lnlike(params, emcee_version: float, lnlike_args: Union[Mapping, Sequence]):
     # wraps the lnlike function because emcee expects 
     # tuple of (lnlike, blob) returned
-
     if isinstance(lnlike_args, Sequence):
         lnl = lnlike(params, *lnlike_args), None
     else:
@@ -59,10 +58,10 @@ def chisq_2d(
     else:
         chisq = np.nansum((vlos_2d_obs - vlos_2d_model) ** 2 / v_err_const ** 2)
     return chisq
-
+    
 
 def lnlike(
-    params,
+    params: np.ndarray,
     model: Model,
     rotation_curve_func_kwargs: Mapping,
     galaxy: Galaxy,
@@ -73,6 +72,7 @@ def lnlike(
     n_interp_r: int = 150,
     n_interp_theta: int = 150,
 ):
+    params = np.array(params)
     v_m = model.generate_1d_rotation_curve(params, **rotation_curve_func_kwargs)
     vlos_2d_model = create_2d_velocity_field(
         radii=ring_model.radii_kpc,
@@ -92,5 +92,6 @@ def lnlike(
         v_err_2d=v_err_2d,
         v_err_const=v_err_const,
     )
-    return -0.5 * chisq
+    prior = model.tophat_prior(params)
+    return -0.5 * chisq + prior
 

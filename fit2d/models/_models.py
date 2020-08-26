@@ -66,11 +66,23 @@ class PiecewiseModel(Model):
                 "or an array of tuples array_bounds, but not both."
             )
         if (vmin is not None and vmax is not None):
-            self.bounds = [(vmin, vmax) for bin in range(self.num_bins)]
+            self.bounds = np.array([(vmin, vmax) for bin in range(self.num_bins)])
         elif array_bounds:
             self.bounds = array_bounds
         else:
             raise ValueError("Need to provide either vmin/vmax OR array of tuple bounds.")
+
+    def tophat_prior(self, params: np.ndarray):
+        if len(params) != len(self.bounds):
+            raise ValueError(
+                f"Length of params vector {len(params)} must be same as length of "
+                f"model params {len(self.bounds)}."
+        )
+        bounds_min, bounds_max = self.bounds.T[0], self.bounds.T[1]
+        if all(params > bounds_min) and all(params < bounds_max):
+            return 0.
+        else:
+            return -np.inf
 
     def generate_1d_rotation_curve(
             self,
