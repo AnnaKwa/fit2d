@@ -86,9 +86,9 @@ def lnlike(
     n_interp_theta: int = 150,
 ):
     params = np.array(params)
-    v_m = model.generate_1d_rotation_curve(params, **rotation_curve_func_kwargs)
+    r_m, v_m = model.generate_1d_rotation_curve(params, **rotation_curve_func_kwargs)
     vlos_2d_model = create_2d_velocity_field(
-        radii=ring_model.radii_kpc,
+        radii=r_m,
         v_rot=v_m,
         ring_model=ring_model,
         kpc_per_pixel=galaxy.kpc_per_pixel,

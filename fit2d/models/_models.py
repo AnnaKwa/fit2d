@@ -99,5 +99,5 @@ class PiecewiseModel(Model):
                     vels.append(
                         velocities_at_piecewise_bin_centers[radius - 1]
                     )  # previous bin edge
-        return np.array(vels)
+        return radii_to_interpolate, np.array(vels)
 

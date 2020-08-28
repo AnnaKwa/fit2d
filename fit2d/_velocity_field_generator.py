@@ -35,7 +35,7 @@ def create_2d_velocity_field(
     image_xdim: int,
     image_ydim: int,
     n_interp_r=75,
-    n_interp_theta=10,
+    n_interp_theta=100,
     n_neighbors_impute=2,
     mask_sigma=1.,
 ):
