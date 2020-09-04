@@ -98,7 +98,10 @@ def lnlike(
         raise ValueError(
             "Must provide at least one of v_err_const (float) or "
             "v_err_2d (ndarray) to lnlike.")
-
+    elif v_err_2d is not None and v_err_const is not None:
+        raise ValueError(
+            "Only provide one of v_err_const (float) or "
+            "v_err_2d (ndarray) to lnlike; you provided both.")
     params = np.array(params)
     r_m, v_m = model.generate_1d_rotation_curve(params, **rotation_curve_func_kwargs)
     vlos_2d_model = create_2d_velocity_field(
