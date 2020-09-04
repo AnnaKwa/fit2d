@@ -27,8 +27,8 @@ def emcee_lnlike(params, emcee_version: float, lnlike_args: Union[Mapping, Seque
 def chisq_2d(
     vlos_2d_model: np.ndarray,
     vlos_2d_obs: np.ndarray,
-    v_err_2d: np.ndarray = None,
-    v_err_const: float = 10.0,
+    v_err_2d: np.ndarray,
+    v_err_const: float,
 ):
     """[summary]
 
@@ -53,10 +53,19 @@ def chisq_2d(
             f"Shape of modeled velocity field {vlos_2d_model.shape} must "
             f"be equal to shape of observed velocity field {vlos_2d_obs.shape}."
         )
-    if v_err_2d:
+    if v_err_2d is not None:
+        if np.shape(vlos_2d_obs) != np.shape(v_err_2d):
+            raise ValueError(
+                f"Shape of 2d error per pixel field {v_err_2d.shape} must "
+                f"be equal to shape of observed velocity field {vlos_2d_obs.shape}."
+            )
         chisq = np.nansum((vlos_2d_obs - vlos_2d_model) ** 2 / v_err_2d ** 2)
-    else:
+    elif v_err_const:
         chisq = np.nansum((vlos_2d_obs - vlos_2d_model) ** 2 / v_err_const ** 2)
+    else:
+        raise ValueError(
+            "Must provide at least one of v_err_const (float) or "
+            "v_err_2d (ndarray) to chisq_2d.")
     return chisq
     
 
@@ -81,10 +90,15 @@ def lnlike(
     ring_model: RingModel,
     mask_sigma: float = 1.,
     v_err_2d: np.ndarray = None,
-    v_err_const: float = 10.0,
+    v_err_const: float = None,
     n_interp_r: int = 150,
     n_interp_theta: int = 150,
 ):
+    if v_err_2d is None and v_err_const is None:
+        raise ValueError(
+            "Must provide at least one of v_err_const (float) or "
+            "v_err_2d (ndarray) to lnlike.")
+
     params = np.array(params)
     r_m, v_m = model.generate_1d_rotation_curve(params, **rotation_curve_func_kwargs)
     vlos_2d_model = create_2d_velocity_field(
