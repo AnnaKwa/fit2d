@@ -72,7 +72,7 @@ def plot_walker_paths(
         ax[i].set_xlabel('step')
     fig.subplots_adjust(hspace=0)
     plt.setp(
-        [a.get_xtickparam_names() for a in fig.axes[:-1]], 
+        [a.get_xticklabels() for a in fig.axes[:-1]], 
         visible=False)
     return fig
 
