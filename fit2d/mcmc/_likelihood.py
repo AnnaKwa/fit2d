@@ -59,14 +59,20 @@ def chisq_2d(
                 f"Shape of 2d error per pixel field {v_err_2d.shape} must "
                 f"be equal to shape of observed velocity field {vlos_2d_obs.shape}."
             )
-        chisq = np.nansum((vlos_2d_obs - vlos_2d_model) ** 2 / v_err_2d ** 2)
+        chisq_array = (vlos_2d_obs - vlos_2d_model) ** 2 / v_err_2d ** 2
     elif v_err_const:
-        chisq = np.nansum((vlos_2d_obs - vlos_2d_model) ** 2 / v_err_const ** 2)
+        chisq_array = (vlos_2d_obs - vlos_2d_model) ** 2 / v_err_const ** 2
     else:
         raise ValueError(
             "Must provide at least one of v_err_const (float) or "
             "v_err_2d (ndarray) to chisq_2d.")
-    return chisq
+    if np.count_nonzero(~np.isnan(chisq_array)) > 0 :
+        chisq = np.nansum(chisq_array)
+        return chisq
+    else:
+        raise ValueError(
+            "There are no overlapping pixels between the modeled region and "
+            "the first moment map.")       
     
 
 def _tophat_prior(params: np.ndarray, bounds: Sequence[tuple]):
