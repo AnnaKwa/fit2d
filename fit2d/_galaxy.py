@@ -1,5 +1,6 @@
 from astropy.io import fits
 from dataclasses import dataclass
+from missingpy import KNNImputer
 import numpy as np
 from scipy.interpolate import interp1d
 from typing import Tuple, Sequence
@@ -9,6 +10,7 @@ from ._constants import RAD_PER_ARCSEC
 from ._helpers import (
     calc_physical_distance_per_pixel,
     _interpolate_baryonic_rotation_curve,
+    create_blurred_mask
 )
 
 
@@ -24,6 +26,8 @@ class Galaxy:
     stellar_radii: Sequence[float] = None
     stellar_velocities: Sequence[float] = None
     age: float = None
+    observed_2d_dispersion_fits_file: str = None
+    min_dispersion: float = 0.01
 
     """
     name: galaxy name
@@ -35,6 +39,7 @@ class Galaxy:
         If None, defaults to zero rotation velocity for this component.
     stellar/gas velocities: Stellar/gas rotation curve. 
         If None, defaults to zero rotation velocity for this component.
+    observed_2d_dispersion_fits_file: Velocity dispersion fits file. Optional.
     """
 
     def __post_init__(self):
@@ -53,8 +58,19 @@ class Galaxy:
             0
         ].data
         self.observed_2d_vel_field = self._correct_vel_field_units(observed_2d_vel_field)
-
         self.image_xdim, self.image_ydim = self.observed_2d_vel_field.shape
+        if self.observed_2d_dispersion_fits_file:
+            observed_2d_dispersion = fits.open(self.observed_2d_dispersion_fits_file)[0].data
+            self.observed_2d_dispersion = self.impute_dispersion_map(observed_2d_dispersion, self.min_dispersion)
+        
+    @staticmethod
+    def impute_dispersion_map(dispersion: np.ndarray, min_dispersion: float=0.01):
+        dispersion[dispersion == 0.] = np.nan
+        near_neighbors_mask = create_blurred_mask(dispersion, sigma=2.)
+        imputer = KNNImputer(n_neighbors=3, weights="distance")
+        dispersion = imputer.fit_transform(np.where(near_neighbors_mask == 1, dispersion, 0.0))
+        dispersion[dispersion == 0] = np.nan
+        return np.clip(dispersion, a_min=min_dispersion, a_max=None)
 
     @staticmethod
     def _correct_vel_field_units(v_field: np.ndarray):
