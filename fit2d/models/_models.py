@@ -1,5 +1,6 @@
 import numpy as np
 from typing import Sequence, Tuple, Mapping
+from .._constants import GNEWTON
 
 
 class Model:
@@ -21,19 +22,51 @@ class Model:
         self.parameter_names = parameter_names
         self.bounds = bounds
     
-    def generate_1d_rotation_curve(self, params):
+    def generate_1d_rotation_curve(self, params: Sequence[float], radii: np.ndarray):
+        # the model should contain the information needed to calculate
+        # the rotation curve with only the parameters and radii
+        # passed to this method
         raise NotImplementedError
 
 
 class NFWModel(Model):
     def __init__(
         self,
-        bounds: Mapping[str, Tuple[float, float]] = None,
-        parameter_order: Sequence[str] = None,
-        log_parameters: Sequence[str] = None
+        bounds: Mapping[str, Tuple[float, float]],
+        v_stellar: np.ndarray,
+        v_gas: np.ndarray,
     ):
         self.bounds = bounds
-        self.parameter_order = parameter_order 
+        for param_bounds in bounds:
+            if max(param_bounds) > 100:
+                raise ValueError(
+                    "Bounds for rhos and rs should be given as log values.")
+        self.v_stellar = v_stellar
+        self.v_gas = v_gas
+        self.parameter_order = sorted(list(bounds.keys()))
+        
+    def generate_1d_rotation_curve(self, params: Sequence[float], radii: np.ndarray):
+        # assumes that rhos and rs are passed as log params, and are
+        # converted to physical parameters before using to calculate velocity
+        ml = params[self.parameter_order.index("ml")]
+        rhos = 10 ** params[self.parameter_order.index("rhos")]
+        rs = 10 ** params[self.parameter_order.index("rs")]
+
+        v2_baryons = ml * (self.v_stellar ** 2) + self.v_gas **2
+        dm_mass_enclosed = self._nfw_mass_enclosed(radii, rhos, rs)
+        v2_dm = GNEWTON * dm_mass_enclosed / radii
+        return np.sqrt(v2_dm + v2_baryons)
+
+    def _nfw_mass_enclosed(
+            self,
+            radii: np.ndarray,
+            rho_s: float,  # msun kpc-3
+            r_s: float # kpc
+    ):
+        mass_enclosed = 4. * np.pi * rho_s * r_s**3 * \
+                        (np.log((r_s + radii) / r_s) -
+                            (radii/ (radii + r_s) ))
+        return mass_enclosed
 
 
 class PiecewiseModel(Model):
