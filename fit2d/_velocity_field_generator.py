@@ -38,6 +38,7 @@ def create_2d_velocity_field(
     n_interp_theta=150,
     n_neighbors_impute=2,
     mask_sigma=1.,
+    harmonic_coefficients=None
 ):
     """
         radii (Sequence[float]): radii for which modeled 1D velocities are provided. [kpc]
@@ -66,7 +67,7 @@ def create_2d_velocity_field(
     r, theta = flattened_r_v_pairs[0], flattened_r_v_pairs[1]
     v = v_rot_interp(r)
     x, y, v_los = _calc_v_los_at_r_theta(
-                ring_model, v, r, theta, kpc_per_pixel, v_systemic
+                ring_model, v, r, theta, kpc_per_pixel, v_systemic, harmonic_coefficients
             )
     x = np.round(x).astype(int) 
     y = np.round(y).astype(int)
@@ -106,7 +107,25 @@ def _convert_galaxy_to_observer_coords(ring_model, r, theta, kpc_per_pixel):
     return x_pix, y_pix
 
 
-def _calc_v_los_at_r_theta(ring_model, v_rot, r, theta, kpc_per_pixel, v_systemic):
+def _harmonic_expansion_los_velocity(theta, harmonic_coefficients=None):
+    # sum over n: c_n * cos(n * phi + phase_n) + s_n * sin(n * phi + phase_n)
+    # ANGLES ARE IN RADIANS
+    harmonic_coefficients = harmonic_coefficients or {
+        "c1": 0., "s1": 0., "phase1": 0.,
+        "c2": 0., "s2": 0., "phase2": 0.
+        }
+    fit_order = max([int(key[-1]) for key in harmonic_coefficients])
+    sum = 0.
+    for i in range(fit_order):
+        n = i+1
+        c_n = harmonic_coefficients.get(f"c{n}", 0.)
+        s_n = harmonic_coefficients.get(f"s{n}", 0.)
+        phase_n = harmonic_coefficients.get(f"phase{n}", 0)
+        sum += c_n * np.cos(theta + phase_n) + s_n * np.sin(theta + phase_n)
+    return sum
+
+
+def _calc_v_los_at_r_theta(ring_model, v_rot, r, theta, kpc_per_pixel, v_systemic, harmonic_coefficients=None):
     # transforms rotational velocity in galaxy frame to line of sight velocity in observer frame
     inc = ring_model.interp_ring_parameters["inc"](r)
     x0 = ring_model.interp_ring_parameters["x_center"](r)
@@ -115,7 +134,9 @@ def _calc_v_los_at_r_theta(ring_model, v_rot, r, theta, kpc_per_pixel, v_systemi
     x_from_galaxy_center, y_from_galaxy_center = _convert_galaxy_to_observer_coords(
         ring_model, r, theta, kpc_per_pixel
     )
-    v_los = v_rot * np.cos(theta) * np.sin(inc) + v_systemic
+    v_los = v_rot * np.cos(theta) * np.sin(inc) + v_systemic \
+        + _harmonic_expansion_los_velocity(theta, harmonic_coefficients)
+
     x = x0 + x_from_galaxy_center
     y = y0 + y_from_galaxy_center
 
