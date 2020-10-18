@@ -78,7 +78,7 @@ class PiecewiseModel(Model):
         parameter_names: Sequence[str] = None,
     ):
         self.num_bins = num_bins
-        self.bounds = bounds
+        self.bounds = np.array(bounds)
         self.bin_edges = bin_edges
         self.parameter_names = parameter_names
 
@@ -112,7 +112,7 @@ class PiecewiseModel(Model):
         if (vmin is not None and vmax is not None):
             self.bounds = np.array([(vmin, vmax) for bin in range(self.num_bins)])
         elif array_bounds:
-            self.bounds = array_bounds
+            self.bounds = np.array(array_bounds)
         else:
             raise ValueError("Need to provide either vmin/vmax OR array of tuple bounds.")
 

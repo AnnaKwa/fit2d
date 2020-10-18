@@ -99,7 +99,20 @@ def lnlike(
     v_err_const: float = None,
     n_interp_r: int = 150,
     n_interp_theta: int = 150,
+    fit_structural_params: Mapping[str, int] = None,
 ):
+    """[summary]
+
+    Args:
+
+        fit_structural_params: dict of structural ring parameter name (as
+            specificied in the RingModel) and its corresponding index in
+            params to be fit. e.g. if "inc
+
+    Returns:
+        [type]: [description]
+    """
+
     if v_err_2d is None and v_err_const is None:
         raise ValueError(
             "Must provide at least one of v_err_const (float) or "
@@ -109,6 +122,10 @@ def lnlike(
             "Only provide one of v_err_const (float) or "
             "v_err_2d (ndarray) to lnlike; you provided both.")
     params = np.array(params)
+    if fit_structural_params:
+        inc = params[fit_structural_params["inc"]]
+        pos_angle = params[fit_structural_params["pos_angle"]]
+        ring_model.update_structural_parameters(inc=inc, pos_angle=pos_angle)
     r_m, v_m = model.generate_1d_rotation_curve(params, **rotation_curve_func_kwargs)
     vlos_2d_model = create_2d_velocity_field(
         radii=r_m,

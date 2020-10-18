@@ -98,8 +98,8 @@ class RingModel:
         ) = np.loadtxt(ring_param_file, usecols=(1, 2, 4, 5, -4, -3, -2)).T
 
         self.radii_kpc = self.radii_arcsec * RAD_PER_ARCSEC * distance
-        self.inclinations = inclinations * np.pi / 180
-        self.position_angles = position_angles * np.pi / 180
+        self.inclinations = inclinations * np.pi / 180.
+        self.position_angles = position_angles * np.pi / 180.
 
         _check_center_pixels(fits_x_centers, fits_y_centers, fits_xdim, fits_ydim)
         self.x_centers, self.y_centers = _convert_fits_to_array_coords(
@@ -113,6 +113,13 @@ class RingModel:
             "x_center": interp1d(self.radii_kpc, self.x_centers),
             "y_center": interp1d(self.radii_kpc, self.y_centers),
         }
+
+
+    def update_structural_parameters(self, inc=None, pos_angle=None):
+        if inc:
+            self.interp_ring_parameters["inc"] = lambda x: inc
+        if pos_angle:
+            self.interp_ring_parameters["pos_ang"] = lambda x: pos_angle
 
 
 def _check_center_pixels(
