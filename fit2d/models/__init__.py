@@ -1,1 +1,1 @@
-from ._models import Model, PiecewiseModel
+from ._models import Model, PiecewiseModel, NFWModel

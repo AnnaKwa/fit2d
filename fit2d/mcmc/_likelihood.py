@@ -46,7 +46,7 @@ def chisq_2d(
             Defaults to 700.
 
     Returns:
-        Chi^2
+        Chi^2 normalized by number of points
     """
     if np.shape(vlos_2d_model) != np.shape(vlos_2d_obs):
         raise ValueError(
@@ -66,9 +66,10 @@ def chisq_2d(
         raise ValueError(
             "Must provide at least one of v_err_const (float) or "
             "v_err_2d (ndarray) to chisq_2d.")
-    if np.count_nonzero(~np.isnan(chisq_array)) > 0 :
+    num_points = np.count_nonzero(~np.isnan(chisq_array))
+    if num_points > 0 :
         chisq = np.nansum(chisq_array)
-        return chisq
+        return chisq / num_points
     else:
         raise ValueError(
             "There are no overlapping pixels between the modeled region and "

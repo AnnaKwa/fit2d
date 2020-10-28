@@ -1,7 +1,7 @@
 import numpy as np
-from typing import Sequence, Tuple
+from typing import Sequence, Tuple, Mapping
 
-from _likelihood import lnlike
+from ._likelihood import lnlike
 
 # for using emcee, neet to generate starting positions
 
@@ -45,10 +45,8 @@ def nfw_start_points(
     lnlike_grid = [
         lnlike(
             parameter_space_point, **lnlike_args)[0]
-        for parameter_space_point in possible_start_combinations
-
+        for parameter_space_point in possible_start_combinations]
     start_point = possible_start_combinations[np.argmax(np.array(lnlike_grid))]
     # random draw to start slightly away (5% of bounds range) from each start point
     start_point_radii = [0.05 * (bound[1]-bound[0]) for bound in bounds]
-    start_point_mcmc_space = (start_point[0], np.log10(start_point[1]), start_point[2])
-    return start_point_mcmc_space, start_point_radii
+    return start_point, start_point_radii
