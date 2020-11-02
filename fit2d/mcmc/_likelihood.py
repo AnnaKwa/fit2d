@@ -69,7 +69,7 @@ def chisq_2d(
     num_points = np.count_nonzero(~np.isnan(chisq_array))
     if num_points > 0 :
         chisq = np.nansum(chisq_array)
-        return chisq / num_points
+        return chisq
     else:
         raise ValueError(
             "There are no overlapping pixels between the modeled region and "
