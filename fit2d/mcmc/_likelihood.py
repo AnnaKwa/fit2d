@@ -29,6 +29,7 @@ def chisq_2d(
     vlos_2d_obs: np.ndarray,
     v_err_2d: np.ndarray,
     v_err_const: float,
+    regularization_coeff: float = 0.,
 ):
     """[summary]
 
@@ -68,7 +69,7 @@ def chisq_2d(
             "v_err_2d (ndarray) to chisq_2d.")
     num_points = np.count_nonzero(~np.isnan(chisq_array))
     if num_points > 0 :
-        chisq = np.nansum(chisq_array)
+        chisq = np.nansum(chisq_array) + regularization_coeff * (-num_points)
         return chisq
     else:
         raise ValueError(
@@ -101,6 +102,7 @@ def lnlike(
     n_interp_r: int = 150,
     n_interp_theta: int = 150,
     fit_structural_params: Mapping[str, int] = None,
+    regularization_coeff: float = 0.,
 ):
     """[summary]
 
@@ -145,6 +147,7 @@ def lnlike(
         vlos_2d_obs=galaxy.observed_2d_vel_field,
         v_err_2d=v_err_2d,
         v_err_const=v_err_const,
+        regularization_coeff=regularization_coeff
     )
     prior = _tophat_prior(params, model.bounds)
     return -0.5 * chisq + prior
