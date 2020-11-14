@@ -65,11 +65,17 @@ def plot_walker_paths(
     fig, ax = plt.subplots(nparams, sharex = True, figsize=(10,5*nparams))
     iter_range = slice(min_iter, max_iter)
     x = range(min_iter or 0, max_iter or niter)
-    for i in range(nparams):
+    if nparams==1:
         for j in range(nwalkers):
-            ax[i].plot(x, sampler.chain[j, iter_range, i])
-        ax[i].set_ylabel(param_names[i])
-        ax[i].set_xlabel('step')
+            ax.plot(x, sampler.chain[j, iter_range, 0])
+        ax.set_ylabel(param_names[0])
+        ax.set_xlabel('step')
+    else:
+        for i in range(nparams):
+            for j in range(nwalkers):
+                ax[i].plot(x, sampler.chain[j, iter_range, i])
+            ax[i].set_ylabel(param_names[i])
+            ax[i].set_xlabel('step')
     fig.subplots_adjust(hspace=0)
     plt.setp(
         [a.get_xticklabels() for a in fig.axes[:-1]], 
