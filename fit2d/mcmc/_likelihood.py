@@ -30,6 +30,7 @@ def chisq_2d(
     v_err_2d: np.ndarray,
     v_err_const: float,
     regularization_coeff: float = 0.,
+    return_n_pixels: bool=False,
 ):
     """[summary]
 
@@ -70,7 +71,10 @@ def chisq_2d(
     num_points = np.count_nonzero(~np.isnan(chisq_array))
     if num_points > 0 :
         chisq = np.nansum(chisq_array) + regularization_coeff * (-num_points)
-        return chisq
+        if return_n_pixels:
+            return chisq, num_points
+        else:
+            return chisq
     else:
         raise ValueError(
             "There are no overlapping pixels between the modeled region and "
@@ -103,6 +107,7 @@ def lnlike(
     n_interp_theta: int = 150,
     fit_structural_params: Mapping[str, int] = None,
     regularization_coeff: float = 0.,
+    return_n_pixels: bool=False
 ):
     """[summary]
 
@@ -147,8 +152,12 @@ def lnlike(
         vlos_2d_obs=galaxy.observed_2d_vel_field,
         v_err_2d=v_err_2d,
         v_err_const=v_err_const,
-        regularization_coeff=regularization_coeff
+        regularization_coeff=regularization_coeff,
+        return_n_pixels=return_n_pixels
     )
     prior = _tophat_prior(params, model.bounds)
-    return -0.5 * chisq + prior
+    if return_n_pixels:
+        return -0.5 * chisq[0] + prior, chisq[1]
+    else:
+        return -0.5 * chisq
 
