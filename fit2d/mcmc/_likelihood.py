@@ -107,7 +107,8 @@ def lnlike(
     n_interp_theta: int = 150,
     fit_structural_params: Mapping[str, int] = None,
     regularization_coeff: float = 0.,
-    return_n_pixels: bool=False
+    return_n_pixels: bool=False,
+    fill_nan_value: float=None,
 ):
     """[summary]
 
@@ -147,6 +148,8 @@ def lnlike(
         n_interp_theta=n_interp_theta,
         mask_sigma=mask_sigma,
     )
+    if fill_nan_value:
+        vlos_2d_model = np.nan_to_num(vlos_2d_model, nan=fill_nan_value)
     chisq = chisq_2d(
         vlos_2d_model=vlos_2d_model,
         vlos_2d_obs=galaxy.observed_2d_vel_field,
