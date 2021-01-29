@@ -162,5 +162,5 @@ def lnlike(
     if return_n_pixels:
         return -0.5 * chisq[0] + prior, chisq[1]
     else:
-        return -0.5 * chisq
+        return -0.5 * chisq + prior
 
