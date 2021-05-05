@@ -1,3 +1,4 @@
+import copy
 import numpy as np
 import time
 from typing import Sequence, Callable, Mapping, Union
@@ -121,7 +122,7 @@ def lnlike(
     Returns:
         [type]: [description]
     """
-
+    ring_model_copy = copy.deepcopy(ring_model)
     if v_err_2d is None and v_err_const is None:
         raise ValueError(
             "Must provide at least one of v_err_const (float) or "
@@ -134,12 +135,12 @@ def lnlike(
     if fit_structural_params:
         inc = params[fit_structural_params["inc"]]
         pos_angle = params[fit_structural_params["pos_angle"]]
-        ring_model.update_structural_parameters(inc=inc, pos_angle=pos_angle)
+        ring_model_copy.update_structural_parameters(inc=inc, pos_angle=pos_angle)
     r_m, v_m = model.generate_1d_rotation_curve(params, **rotation_curve_func_kwargs)
     vlos_2d_model = create_2d_velocity_field(
         radii=r_m,
         v_rot=v_m,
-        ring_model=ring_model,
+        ring_model=ring_model_copy,
         kpc_per_pixel=galaxy.kpc_per_pixel,
         v_systemic=galaxy.v_systemic,
         image_xdim=galaxy.image_xdim,
