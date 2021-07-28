@@ -71,7 +71,8 @@ def create_2d_velocity_field(
             )
     x = np.round(x).astype(int) 
     y = np.round(y).astype(int)
-    v_field[y, x] = v_los
+    if y < image_ydim and x < image_xdim:
+        v_field[y, x] = v_los
 
     near_neighbors_mask = create_blurred_mask(v_field, mask_sigma)
 
