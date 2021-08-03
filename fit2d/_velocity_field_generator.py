@@ -71,8 +71,12 @@ def create_2d_velocity_field(
             )
     x = np.round(x).astype(int) 
     y = np.round(y).astype(int)
-    if y < image_ydim and x < image_xdim:
-        v_field[y, x] = v_los
+    
+    # mask to pixels within image dimensions
+    image_dim_mask = _filter_indices(x, y, image_xdim, image_ydim)
+    x_mask, y_mask, v_los_mask = x[image_dim_mask], y[image_dim_mask], v_los[image_dim_mask]
+
+    v_field[y_mask, x_mask] = v_los_mask
 
     near_neighbors_mask = create_blurred_mask(v_field, mask_sigma)
 
@@ -83,6 +87,13 @@ def create_2d_velocity_field(
     # rotate to match the fits data field
     v_field = np.rot90(v_field, 3)
     return v_field
+
+
+def _filter_indices(x, y, xdim, ydim):
+    x_mask = x < xdim
+    y_mask = y < ydim
+    mask = x_mask * y_mask
+    return mask
 
 
 def _convert_galaxy_to_observer_coords(ring_model, r, theta, kpc_per_pixel):
