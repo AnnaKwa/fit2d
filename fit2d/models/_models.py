@@ -121,16 +121,18 @@ class PiecewiseModel(Model):
             params: Sequence[float],
             radii_to_interpolate: Sequence[float],
     ):
-        vels = []
+        radii, vels = [], []
         velocities_at_piecewise_bin_centers = params
         bin_edges = self.bin_edges
-        for ring in radii_to_interpolate:
-            for radius in range(len(bin_edges)):
+    
+        for r in radii_to_interpolate:
+            for bin_index in range(len(bin_edges)):
                 if (
-                    ring <= bin_edges[radius] and ring > bin_edges[radius - 1]
+                    r <= bin_edges[bin_index] and r > bin_edges[bin_index - 1]
                 ):  # ring is greater than current bin edge, and less than
                     vels.append(
-                        velocities_at_piecewise_bin_centers[radius - 1]
+                        velocities_at_piecewise_bin_centers[bin_index - 1]
                     )  # previous bin edge
-        return radii_to_interpolate, np.array(vels)
+                    radii.append(r)
+        return np.array(radii), np.array(vels)
 
