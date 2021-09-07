@@ -6,27 +6,56 @@ from typing import Sequence
 from ._galaxy import RingModel
 from ._helpers import create_blurred_mask
 
-"""
-This code takes a (r, theta) coordinate in the galaxy's coordinate frame
-and the rotational velocity at that point (also in the galaxy's rest coordinate frame)
-and calculates 
-	i) the pixel position that corresponds to that coordinate, in the observer's frame,
-  	accounting for position angle and inclination of the galaxy disk & systemic velocity.
-  ii) the line of sight velocity (i.e. what the first moment map shows) at that pixel
 
-We start in the galaxy coordinates and transform to the observer pixel coordinates, instead of vice versa,
-because there is a one to one mapping of galaxy coord -> pixel but there is not a one to one mapping in the other direction
-(multiple radii of the galaxy may lie in one pixel).
+def _filter_indices(x, y, xdim, ydim):
+    x_mask = x < xdim
+    y_mask = y < ydim
+    mask = x_mask * y_mask
+    return mask
 
-It iterates over many radii and angles in the galaxy frame and fills in the corresponding pixels.
-Even then, however, there will be pixels that are not filled in with a line of sight velocity,
-because we are sampling discrete points in the galaxy coordinate frame.
-
-Therefore the last step is to use a nearest neighbors algorithm, which fill in the line of sight values for
-empty pixels by interpolating the values of nearby pixels.
-"""
 
 def create_2d_velocity_field(
+        radii: Sequence[float],   # todo: make this work for v_rot as func of r, as opposed to constant v_rot
+        v_rot: Sequence[float],
+        i,
+        pa, 
+        x_dim, 
+        y_dim, 
+        x_center, 
+        y_center, 
+        r_min_kpc: float=None,
+        r_max_kpc: float=None,
+        kpc_per_pixel: float,
+):
+    flattened_x_y_pairs = np.array(np.meshgrid(np.arange(x_dim), np.arange(y_dim))).T.reshape(-1, 2).T
+    x, y = flattened_x_y_pairs[0], flattened_x_y_pairs[1]
+
+    r_cen = np.sqrt(
+        np.cos(pa) **2 * ((y - y_center)**2 + (x - x_center)**2 / np.cos(i)**2 )
+        + np.sin(pa) **2 * ((x - x_center)**2 + (y - y_center)**2 / np.cos(i)**2 )
+        + np.sin(2 * pa) * np.tan(i) **2 * (x - x_center) * (y - y_center)
+    )
+
+    cos_theta = ( (y - y_center) * np.cos(pa) - (x - x_center) * np.sin(pa) ) / r_cen
+    v_los_flattened = v_rot * np.sin(i) * cos_theta
+
+    x = np.round(x).astype(int) 
+    y = np.round(y).astype(int)
+
+    r_mask = r_m >= r_min_kpc and r <= r_max_kpc
+    x = x[r_mask]
+    y = y[r_mask]
+    v_los_flattened = v_los_flattened[r_mask]
+
+    # switched indices order and rotation to match FITS file array data
+    v_field = np.zeros(shape=(y_dim, x_dim))
+    v_field[:] = np.nan
+    v_field[y, x] = v_los_flattened
+    v_field = np.rot90(v_field, 3)
+    return v_field
+
+
+def create_2d_velocity_field_old(
     radii: Sequence[float],
     v_rot: Sequence[float],
     ring_model: RingModel,
@@ -47,9 +76,25 @@ def create_2d_velocity_field(
             Defaults to 75.
         n_interp_theta (int, optional): Number of azimuthal angles to use in construction modeled field.
             Defaults to 700.
-    """
+    
+        This code takes a (r, theta) coordinate in the galaxy's coordinate frame
+        and the rotational velocity at that point (also in the galaxy's rest coordinate frame)
+        and calculates 
+            i) the pixel position that corresponds to that coordinate, in the observer's frame,
+            accounting for position angle and inclination of the galaxy disk & systemic velocity.
+        ii) the line of sight velocity (i.e. what the first moment map shows) at that pixel
 
-    """
+        We start in the galaxy coordinates and transform to the observer pixel coordinates, instead of vice versa,
+        because there is a one to one mapping of galaxy coord -> pixel but there is not a one to one mapping in the other direction
+        (multiple radii of the galaxy may lie in one pixel).
+
+        It iterates over many radii and angles in the galaxy frame and fills in the corresponding pixels.
+        Even then, however, there will be pixels that are not filled in with a line of sight velocity,
+        because we are sampling discrete points in the galaxy coordinate frame.
+
+        Therefore the last step is to use a nearest neighbors algorithm, which fill in the line of sight values for
+        empty pixels by interpolating the values of nearby pixels.
+  
     uses tilted ring model parameters to calculate velocity field
     using eqn 1-3 of 1709.02049 and v_rot from mass model
     it is easier to loop through polar coordinates and then map the v_los to the
@@ -66,9 +111,10 @@ def create_2d_velocity_field(
     flattened_r_v_pairs = np.array(np.meshgrid(radii_interp, theta)).T.reshape(-1, 2).T
     r, theta = flattened_r_v_pairs[0], flattened_r_v_pairs[1]
     v = v_rot_interp(r)
+
     x, y, v_los = _calc_v_los_at_r_theta(
-                ring_model, v, r, theta, kpc_per_pixel, v_systemic, harmonic_coefficients
-            )
+        ring_model, v, r, theta, kpc_per_pixel, v_systemic, harmonic_coefficients,
+    )
     x = np.round(x).astype(int) 
     y = np.round(y).astype(int)
     
@@ -87,13 +133,6 @@ def create_2d_velocity_field(
     # rotate to match the fits data field
     v_field = np.rot90(v_field, 3)
     return v_field
-
-
-def _filter_indices(x, y, xdim, ydim):
-    x_mask = x < xdim
-    y_mask = y < ydim
-    mask = x_mask * y_mask
-    return mask
 
 
 def _convert_galaxy_to_observer_coords(ring_model, r, theta, kpc_per_pixel):

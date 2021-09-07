@@ -137,6 +137,28 @@ def lnlike(
         pos_angle = params[fit_structural_params["pos_angle"]]
         ring_model_copy.update_structural_parameters(inc=inc, pos_angle=pos_angle)
     r_m, v_m = model.generate_1d_rotation_curve(params, **rotation_curve_func_kwargs)
+
+    # todo: allow non-constant inc / pa to be provided 
+    temp_inc = ring_model_copy.interp_ring_parameters["inc"](r_m[1])
+    temp_pa = ring_model_copy.interp_ring_parameters["pos_ang"](r_m[1])
+    temp_xc ring_model_copy.interp_ring_parameters["x_center"](r_m[1])
+    temp_yc = ring_model.interp_ring_parameters["y_center"](r_m[1])
+
+    vlos_2d_model = create_2d_velocity_field(
+        radii=r_m,
+        v_rot=v_m,
+        i=temp_inc,
+        pa=temp_inc, 
+        x_dim=galaxy.image_xdim, 
+        y_dim=galaxy.image_ydim,
+        x_center=temp_xc, 
+        y_center=temp_yc, 
+        r_min_kpc=np.min(r_m),
+        r_max_kpc=np.max(r_m),
+        kpc_per_pixel=galaxy.kpc_per_pixel,
+    )
+
+    """
     vlos_2d_model = create_2d_velocity_field(
         radii=r_m,
         v_rot=v_m,
@@ -149,6 +171,7 @@ def lnlike(
         n_interp_theta=n_interp_theta,
         mask_sigma=mask_sigma,
     )
+    """
     if fill_nan_value:
         vlos_2d_model = np.nan_to_num(vlos_2d_model, nan=fill_nan_value)
     chisq = chisq_2d(
