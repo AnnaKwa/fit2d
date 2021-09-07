@@ -107,6 +107,7 @@ def lnlike(
     n_interp_r: int = 150,
     n_interp_theta: int = 150,
     fit_structural_params: Mapping[str, int] = None,
+    fit_sin_i: bool=False,
     regularization_coeff: float = 0.,
     return_n_pixels: bool=False,
     fill_nan_value: float=None,
@@ -133,7 +134,17 @@ def lnlike(
             "v_err_2d (ndarray) to lnlike; you provided both.")
     params = np.array(params)
     if fit_structural_params:
-        inc = params[fit_structural_params["inc"]]
+        if "sin_inc" in fit_structural_params:
+            sin_inc = params[fit_structural_params["sin_inc"]]
+            inc = np.arcsin(sin_inc)
+        elif "inc" in fit_structural_params:
+            inc = params[fit_structural_params["inc"]]
+            sin_inc = np.sin(inc)
+        else:
+            raise ValueError(
+                "Either 'sin_inc' or 'inc' must be provided as a structural parameter "
+                "to be fit."
+            )
         pos_angle = params[fit_structural_params["pos_angle"]]
         ring_model_copy.update_structural_parameters(inc=inc, pos_angle=pos_angle)
     r_m, v_m = model.generate_1d_rotation_curve(params, **rotation_curve_func_kwargs)
