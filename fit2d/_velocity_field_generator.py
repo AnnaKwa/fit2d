@@ -23,9 +23,9 @@ def create_2d_velocity_field(
         y_dim, 
         x_center, 
         y_center, 
+        kpc_per_pixel: float,
         r_min_kpc: float=None,
         r_max_kpc: float=None,
-        kpc_per_pixel: float,
 ):
     flattened_x_y_pairs = np.array(np.meshgrid(np.arange(x_dim), np.arange(y_dim))).T.reshape(-1, 2).T
     x, y = flattened_x_y_pairs[0], flattened_x_y_pairs[1]
