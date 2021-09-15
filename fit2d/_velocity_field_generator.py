@@ -15,8 +15,8 @@ def _filter_indices(x, y, xdim, ydim):
 
 
 def create_2d_velocity_field(
-        radii: Sequence[float],   # todo: make this work for v_rot as func of r, as opposed to constant v_rot
-        v_rot: Sequence[float],
+        radii: Sequence[float], # todo: currently unused 
+        v_rot: float, # todo: make this work for v_rot as func of r, as opposed to constant v_rot
         i,
         pa, 
         x_dim, 
@@ -24,9 +24,10 @@ def create_2d_velocity_field(
         x_center, 
         y_center, 
         kpc_per_pixel: float,
-        r_min_kpc: float=None,
+        r_min_kpc: float=0.,
         r_max_kpc: float=None,
 ):
+    r_max_kpc = r_max_kpc or np.max(radii)
     flattened_x_y_pairs = np.array(np.meshgrid(np.arange(x_dim), np.arange(y_dim))).T.reshape(-1, 2).T
     x, y = flattened_x_y_pairs[0], flattened_x_y_pairs[1]
 
@@ -42,7 +43,8 @@ def create_2d_velocity_field(
     x = np.round(x).astype(int) 
     y = np.round(y).astype(int)
 
-    r_mask = r_m >= r_min_kpc and r <= r_max_kpc
+    radius_pix_min, radius_pix_max = r_min_kpc / kpc_per_pixel, r_max_kpc / kpc_per_pixel
+    r_mask = (r_cen >= radius_pix_min) & (r_cen <= radius_pix_max)
     x = x[r_mask]
     y = y[r_mask]
     v_los_flattened = v_los_flattened[r_mask]
