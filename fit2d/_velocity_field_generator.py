@@ -15,8 +15,8 @@ def _filter_indices(x, y, xdim, ydim):
 
 
 def create_2d_velocity_field(
-        radii: Sequence[float], # todo: currently unused 
-        v_rot: float, # todo: make this work for v_rot as func of r, as opposed to constant v_rot
+        radii: Sequence[float],
+        v_rot: Sequence[float], 
         i,
         pa, 
         x_dim, 
@@ -27,6 +27,7 @@ def create_2d_velocity_field(
         r_min_kpc: float=0.,
         r_max_kpc: float=None,
 ):
+    v_interp_func = interp1d(radii, v_rot, bounds_error=False, fill_value=np.nan)
     r_max_kpc = r_max_kpc or np.max(radii)
     flattened_x_y_pairs = np.array(np.meshgrid(np.arange(x_dim), np.arange(y_dim))).T.reshape(-1, 2).T
     x, y = flattened_x_y_pairs[0], flattened_x_y_pairs[1]
@@ -36,9 +37,10 @@ def create_2d_velocity_field(
         + np.sin(pa) **2 * ((x - x_center)**2 + (y - y_center)**2 / np.cos(i)**2 )
         + np.sin(2 * pa) * np.tan(i) **2 * (x - x_center) * (y - y_center)
     )
-
     cos_theta = ( (y - y_center) * np.cos(pa) - (x - x_center) * np.sin(pa) ) / r_cen
-    v_los_flattened = v_rot * np.sin(i) * cos_theta
+
+    v_rot_interp = v_interp_func(r_cen * kpc_per_pixel)
+    v_los_flattened = v_rot_interp * np.sin(i) * cos_theta
 
     x = np.round(x).astype(int) 
     y = np.round(y).astype(int)
@@ -53,7 +55,6 @@ def create_2d_velocity_field(
     v_field = np.zeros(shape=(y_dim, x_dim))
     v_field[:] = np.nan
     v_field[y, x] = v_los_flattened
-    v_field = np.rot90(v_field, 3)
     return v_field
 
 

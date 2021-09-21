@@ -153,7 +153,7 @@ def lnlike(
     temp_inc = ring_model_copy.interp_ring_parameters["inc"](r_m[1])
     temp_pa = ring_model_copy.interp_ring_parameters["pos_ang"](r_m[1])
     temp_xc = ring_model_copy.interp_ring_parameters["x_center"](r_m[1])
-    temp_yc = ring_model.interp_ring_parameters["y_center"](r_m[1])
+    temp_yc = ring_model_copy.interp_ring_parameters["y_center"](r_m[1])
 
     vlos_2d_model = create_2d_velocity_field(
         radii=r_m,
