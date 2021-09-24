@@ -160,6 +160,7 @@ def lnlike(
         v_rot=v_m,
         i=temp_inc,
         pa=temp_inc, 
+        v_sys=galaxy.v_systemic,
         x_dim=galaxy.image_xdim, 
         y_dim=galaxy.image_ydim,
         x_center=temp_xc, 

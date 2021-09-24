@@ -19,6 +19,7 @@ def create_2d_velocity_field(
         v_rot: Sequence[float], 
         i,
         pa, 
+        v_sys,
         x_dim, 
         y_dim, 
         x_center, 
@@ -40,7 +41,7 @@ def create_2d_velocity_field(
     cos_theta = ( (y - y_center) * np.cos(pa) - (x - x_center) * np.sin(pa) ) / r_cen
 
     v_rot_interp = v_interp_func(r_cen * kpc_per_pixel)
-    v_los_flattened = v_rot_interp * np.sin(i) * cos_theta
+    v_los_flattened = v_rot_interp * np.sin(i) * cos_theta + v_sys
 
     x = np.round(x).astype(int) 
     y = np.round(y).astype(int)
