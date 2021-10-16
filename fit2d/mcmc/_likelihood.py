@@ -15,14 +15,14 @@ def emcee_lnlike(params, emcee_version: float, lnlike_args: Union[Mapping, Seque
     # wraps the lnlike function because emcee expects 
     # tuple of (lnlike, blob) returned
     if isinstance(lnlike_args, Sequence):
-        lnl = lnlike(params, *lnlike_args), None
+        lnl = lnlike(params, *lnlike_args)
     else:
         lnl = lnlike(params, **lnlike_args)
     if emcee_version < 3:
         # older version expects two returns: lnlike and blobs
-        return lnl, None
-    else:
         return lnl
+    else:
+        return lnl[0]
 
 
 def chisq_2d(
@@ -133,13 +133,16 @@ def lnlike(
             "Only provide one of v_err_const (float) or "
             "v_err_2d (ndarray) to lnlike; you provided both.")
     params = np.array(params)
+    blob={}
     if fit_structural_params:
         if "sin_inc" in fit_structural_params:
             sin_inc = params[fit_structural_params["sin_inc"]]
             inc = np.arcsin(sin_inc)
+            blob["inc_param"] = inc
         elif "inc" in fit_structural_params:
             inc = params[fit_structural_params["inc"]]
             sin_inc = np.sin(inc)
+            blob["inc_param"] = inc
         else:
             raise ValueError(
                 "Either 'sin_inc' or 'inc' must be provided as a structural parameter "
@@ -163,15 +166,22 @@ def lnlike(
         v_sys=galaxy.v_systemic,
         x_dim=galaxy.image_xdim, 
         y_dim=galaxy.image_ydim,
-        x_center=temp_xc, 
-        y_center=temp_yc, 
+        x_center=galaxy.image_xdim/2,   # patched for now to avoid bugs from different image size in ring param file
+        y_center=galaxy.image_ydim/2, 
         kpc_per_pixel=galaxy.kpc_per_pixel,
         r_min_kpc=np.min(r_m),
         r_max_kpc=np.max(r_m),
     )
-
+    blob.update( {
+        "r_input_to_2d_model": r_m,
+        "vrot_input_to_2d_model": v_m,
+        "inc_input_to_2d_model": temp_inc,
+        "pa_input_to_2d_model": temp_pa,
+        "v_sys_input_to_2d_model": galaxy.v_systemic, 
+        "fill_nan_value": fill_nan_value,
+    })
     """
-    vlos_2d_model = create_2d_velocity_field(
+    vlos_2d_model = create_2d_velocity_field_old(
         radii=r_m,
         v_rot=v_m,
         ring_model=ring_model_copy,
@@ -194,9 +204,12 @@ def lnlike(
         regularization_coeff=regularization_coeff,
         return_n_pixels=return_n_pixels
     )
+    blob["vlos_2d_model"]= vlos_2d_model
+
     prior = _tophat_prior(params, model.bounds)
+    
     if return_n_pixels:
-        return -0.5 * chisq[0] + prior, chisq[1]
+        return -0.5 * chisq[0] + prior, blob.append(chisq[1])
     else:
-        return -0.5 * chisq + prior
+       return -0.5 * chisq + prior, blob
 
