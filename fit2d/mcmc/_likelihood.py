@@ -163,8 +163,8 @@ def lnlike(
         v_sys=galaxy.v_systemic,
         x_dim=galaxy.image_xdim, 
         y_dim=galaxy.image_ydim,
-        x_center=temp_xc, 
-        y_center=temp_yc, 
+        x_center=galaxy.image_xdim/2,   # patched for now to avoid bugs from different image size in ring param file
+        y_center=galaxy.image_ydim/2, 
         kpc_per_pixel=galaxy.kpc_per_pixel,
         r_min_kpc=np.min(r_m),
         r_max_kpc=np.max(r_m),
