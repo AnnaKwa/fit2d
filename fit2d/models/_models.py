@@ -117,14 +117,16 @@ class PiecewiseModel(Model):
             raise ValueError("Need to provide either vmin/vmax OR array of tuple bounds.")
 
     def generate_1d_rotation_curve(
-            self,
-            params: Sequence[float],
-            radii_to_interpolate: Sequence[float],
+        self,
+        params: Sequence[float],
+        radii_to_interpolate: Sequence[float],
     ):
         radii, vels = [], []
-        velocities_at_piecewise_bin_centers = params
         bin_edges = self.bin_edges
-    
+        velocities_at_piecewise_bin_centers = (
+            params[0] if hasattr(params[0], "__len__") 
+            else [params[0],]
+        )
         for r in radii_to_interpolate:
             for bin_index in range(len(bin_edges)):
                 if (
@@ -134,5 +136,7 @@ class PiecewiseModel(Model):
                         velocities_at_piecewise_bin_centers[bin_index - 1]
                     )  # previous bin edge
                     radii.append(r)
+        print('velocities: ',np.array(vels)
+)
         return np.array(radii), np.array(vels)
 
