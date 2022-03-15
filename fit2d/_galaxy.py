@@ -80,7 +80,19 @@ class Galaxy:
         if oom > 3:
             v_field = v_field / 1e3
         return v_field
-        
+
+
+class Constant:
+    # workaround for pickle not being able to serialize lambda that
+    # was used in 
+    # https://stackoverflow.com/a/12022055
+    def __init__(self, constant):
+        self.constant = constant
+    def __call__(self, r):
+        # replaces calls of lambda: x
+        # the radius provided does not get used as this class returns
+        # a constant inc/pa at any radius
+        return self.constant
 
 
 class RingModel:
@@ -117,9 +129,10 @@ class RingModel:
 
     def update_structural_parameters(self, inc=None, pos_angle=None):
         if inc:
-            self.interp_ring_parameters["inc"] = lambda x: inc
+            self.interp_ring_parameters["inc"] = Constant(inc)
         if pos_angle:
-            self.interp_ring_parameters["pos_ang"] = lambda x: pos_angle
+            self.interp_ring_parameters["pos_ang"] = Constant(pos_angle)
+
 
 
 def _check_center_pixels(
