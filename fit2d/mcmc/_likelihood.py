@@ -7,12 +7,16 @@ from .._galaxy import Galaxy, RingModel
 from .._velocity_field_generator import create_2d_velocity_field
 from ..models import Model
 
+from scipy.signal import convolve2d as conv2d # convolution package
+from scipy.signal import fftconvolve as fftconv # faster convolution package - FastFourierTransform
+
+
 def dynesty_lnlike(lnlike_func, normalization_func, lnlike_args, ):
     return lambda cube: lnlike_func(normalization_func(cube), *lnlike_args)
 
 
 def emcee_lnlike(params, emcee_version: float, lnlike_args: Union[Mapping, Sequence]):
-    # wraps the lnlike function because emcee expects 
+    # wraps the lnlike function because emcee expects
     # tuple of (lnlike, blob) returned
     if isinstance(lnlike_args, Sequence):
         lnl = lnlike(params, *lnlike_args), None
@@ -79,8 +83,8 @@ def chisq_2d(
     else:
         raise ValueError(
             "There are no overlapping pixels between the modeled region and "
-            "the first moment map.")       
-    
+            "the first moment map.")
+
 
 def _tophat_prior(params: np.ndarray, bounds: Sequence[tuple]):
     if len(params) != len(bounds):
@@ -149,7 +153,9 @@ def lnlike(
         ring_model_copy.update_structural_parameters(inc=inc, pos_angle=pos_angle)
     r_m, v_m = model.generate_1d_rotation_curve(params, **rotation_curve_func_kwargs)
 
-    # todo: allow non-constant inc / pa to be provided 
+    mask = galaxy.observed_2d_vel_field/galaxy.observed_2d_vel_field # added by Stephen
+
+    # todo: allow non-constant inc / pa to be provided
     temp_inc = ring_model_copy.interp_ring_parameters["inc"](r_m[1])
     temp_pa = ring_model_copy.interp_ring_parameters["pos_ang"](r_m[1])
     temp_xc = ring_model_copy.interp_ring_parameters["x_center"](r_m[1])
@@ -159,12 +165,12 @@ def lnlike(
         radii=r_m,
         v_rot=v_m,
         i=temp_inc,
-        pa=temp_pa, 
+        pa=temp_pa,
         v_sys=galaxy.v_systemic,
-        x_dim=galaxy.image_xdim, 
+        x_dim=galaxy.image_xdim,
         y_dim=galaxy.image_ydim,
         x_center=galaxy.image_xdim/2,   # patched for now to avoid bugs from different image size in ring param file
-        y_center=galaxy.image_ydim/2, 
+        y_center=galaxy.image_ydim/2,
         kpc_per_pixel=galaxy.kpc_per_pixel,
         r_min_kpc=np.min(r_m),
         r_max_kpc=np.max(r_m),
@@ -186,6 +192,15 @@ def lnlike(
     """
     if fill_nan_value:
         vlos_2d_model = np.nan_to_num(vlos_2d_model, nan=fill_nan_value)
+
+    vlos_2d_model = vlos_2d_model*mask #added by stephen
+
+    # added by Stephen - convolution step
+    V = galaxy.H1_map*vlos_2d_model # intensity-weighted velocity field
+    V = np.nan_to_num(V, nan = 1e-9)
+    m1 = fftconv(V, galaxy.kernel, mode = 'same') # m1
+    vlos_2d_model = m1/galaxy.m0 # w = m1/m0
+
     chisq = chisq_2d(
         vlos_2d_model=vlos_2d_model,
         vlos_2d_obs=galaxy.observed_2d_vel_field,
@@ -199,4 +214,3 @@ def lnlike(
         return -0.5 * chisq[0] + prior, chisq[1]
     else:
         return -0.5 * chisq + prior
-
