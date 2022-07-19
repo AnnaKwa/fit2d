@@ -13,12 +13,18 @@ from ._helpers import (
     create_blurred_mask
 )
 
+from skimage import color, data, restoration # added by stepen for deconvolution
+from scipy.signal import fftconvolve as fftconv # faster convolution package - FastFourierTransform
+
+
+
 
 @dataclass
 class Galaxy:
     name: str
     distance: float
     observed_2d_vel_field_fits_file: str
+    observed_2d_intensity_field_fits_file: str # added by Stephen
     deg_per_pixel: float
     v_systemic: float
     gas_radii: Sequence[float] = None
@@ -35,9 +41,9 @@ class Galaxy:
     vlos_2d_data: np array of 1st moment, from the fits data
     deg_per_pixel: degrees per pixel in data array
     age: in Gyr, optional. Used for SIDM model.
-    stellar/gas radii: Radii that define the stellar/gas rotation curve. 
+    stellar/gas radii: Radii that define the stellar/gas rotation curve.
         If None, defaults to zero rotation velocity for this component.
-    stellar/gas velocities: Stellar/gas rotation curve. 
+    stellar/gas velocities: Stellar/gas rotation curve.
         If None, defaults to zero rotation velocity for this component.
     observed_2d_dispersion_fits_file: Velocity dispersion fits file. Optional.
     """
@@ -62,7 +68,20 @@ class Galaxy:
         if self.observed_2d_dispersion_fits_file:
             observed_2d_dispersion = fits.open(self.observed_2d_dispersion_fits_file)[0].data
             self.observed_2d_dispersion = self.impute_dispersion_map(observed_2d_dispersion, self.min_dispersion)
-        
+        self.observed_2d_intensity_field = fits.open(self.observed_2d_intensity_field_fits_file)[0].data # added by stephen
+        # defining circular 2D Gaussian beam
+        bmaj = fits.open(self.observed_2d_intensity_field_fits_file)[0].header["BMAJ"]/self.deg_per_pixel
+        x, y = np.meshgrid(np.arange(0,bmaj), np.arange(0,bmaj))
+        B = 2*np.pi*bmaj**2*np.exp(-1/(2*(bmaj**2)) * ((x-bmaj/2)**2 + (y-bmaj/2)**2))
+        B /= np.sum(B)
+        self.kernel = B
+
+        data = np.nan_to_num(self.observed_2d_intensity_field, nan = 1e-9) # obs 0th mom w/ filled nans
+        self.H1_map = restoration.richardson_lucy(data, self.kernel)
+
+        self.m0 = fftconv(self.H1_map,self.kernel, mode = 'same') # m0
+
+
     @staticmethod
     def impute_dispersion_map(dispersion: np.ndarray, min_dispersion: float=0.01):
         dispersion[dispersion == 0.] = np.nan
@@ -84,7 +103,7 @@ class Galaxy:
 
 class Constant:
     # workaround for pickle not being able to serialize lambda that
-    # was used in 
+    # was used in
     # https://stackoverflow.com/a/12022055
     def __init__(self, constant):
         self.constant = constant
@@ -107,7 +126,7 @@ class RingModel:
             fits_x_centers,
             fits_y_centers,
             self.v_systemics,
-        ) = np.loadtxt(ring_param_file, usecols=(1, 2, 4, 5, -4, -3, -2)).T
+        ) = np.loadtxt(ring_param_file, usecols=(1, 3, 6, 5, -2, -1, 2)).T #I've changed the order of these when comparing against the 2D fit because the ringlog produced has a different ordering
 
         self.radii_kpc = self.radii_arcsec * RAD_PER_ARCSEC * distance
         self.inclinations = inclinations * np.pi / 180.
